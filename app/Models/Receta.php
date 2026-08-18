@@ -42,4 +42,18 @@ class Receta extends Model
             return $costoUnitario * (float) $ingrediente->pivot->cantidad;
         });
     }
+
+    /**
+     * Costo por unidad de rendimiento (ej: costo por medialuna dentro de una
+     * docena), usado para calcular el costo de los ítems de tipo "receta"
+     * dentro de un presupuesto.
+     */
+    public function getCostoPorUnidadAttribute(): float
+    {
+        if (! $this->rendimiento_cantidad) {
+            return 0;
+        }
+
+        return round($this->costo_total / (float) $this->rendimiento_cantidad, 4);
+    }
 }

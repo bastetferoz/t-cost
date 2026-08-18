@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, usePage, Link } from '@inertiajs/react';
+import { Head, usePage, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import {
     Camera,
@@ -10,6 +10,9 @@ import {
     Plus,
     ShoppingCart,
     Thermometer,
+    RefreshCw,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 
 const DIAS = [
@@ -31,9 +34,12 @@ function fechaLarga(date) {
     return `${dia}, ${date.getDate()} de ${MESES[date.getMonth()]}`;
 }
 
-function StatTile({ icon: Icon, iconClass, value, label }) {
+function StatTile({ icon: Icon, iconClass, value, label, href }) {
     return (
-        <div className="rounded-2xl border border-white/5 bg-[#12121f] p-5">
+        <Link
+            href={href}
+            className="rounded-2xl border border-white/5 bg-[#12121f] p-5 transition hover:bg-white/[0.03]"
+        >
             <div
                 className={
                     'mb-3 flex h-9 w-9 items-center justify-center rounded-xl ' +
@@ -44,16 +50,13 @@ function StatTile({ icon: Icon, iconClass, value, label }) {
             </div>
             <div className="text-2xl font-bold text-white">{value}</div>
             <div className="mt-1 text-sm text-slate-500">{label}</div>
-        </div>
+        </Link>
     );
 }
 
-function QuickAccessRow({ icon: Icon, iconClass, title, subtitle, href }) {
-    return (
-        <Link
-            href={href}
-            className="flex items-center gap-4 border-b border-white/5 px-5 py-4 last:border-0 hover:bg-white/[0.03]"
-        >
+function QuickAccessRow({ icon: Icon, iconClass, title, subtitle, href, onClick }) {
+    const content = (
+        <>
             <div
                 className={
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ' +
@@ -69,6 +72,27 @@ function QuickAccessRow({ icon: Icon, iconClass, title, subtitle, href }) {
                 <div className="text-sm text-slate-500">{subtitle}</div>
             </div>
             <ChevronRight className="h-4 w-4 text-slate-600" />
+        </>
+    );
+
+    if (onClick) {
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className="flex w-full items-center gap-4 border-b border-white/5 px-5 py-4 text-left last:border-0 hover:bg-white/[0.03]"
+            >
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <Link
+            href={href}
+            className="flex items-center gap-4 border-b border-white/5 px-5 py-4 last:border-0 hover:bg-white/[0.03]"
+        >
+            {content}
         </Link>
     );
 }
@@ -77,6 +101,8 @@ export default function Dashboard({ stats = {} }) {
     const { auth } = usePage().props;
     const businessName = auth?.user?.business_name || auth?.user?.name || '';
     const [city, setCity] = useState('');
+    const [montoOculto, setMontoOculto] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     const s = {
         gastoComprasMes: 0,
@@ -86,13 +112,37 @@ export default function Dashboard({ stats = {} }) {
         ...stats,
     };
 
+    function actualizar() {
+        setRefreshing(true);
+        router.reload({ onFinish: () => setRefreshing(false) });
+    }
+
+    function cerrarElDia() {
+        router.visit(s.recetas === 0 ? '/recetas' : '/produccion');
+    }
+
     return (
         <AppLayout current="Inicio">
             <Head title="Inicio" />
 
-            <h1 className="mb-1 text-2xl font-bold text-white">
-                Hola{businessName ? `, ${businessName}` : ''}
-            </h1>
+            <div className="mb-1 flex items-start justify-between">
+                <h1 className="text-2xl font-bold text-white">
+                    Hola{businessName ? `, ${businessName}` : ''}
+                </h1>
+                <button
+                    type="button"
+                    onClick={actualizar}
+                    aria-label="Actualizar"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#12121f] text-slate-400 hover:text-slate-200"
+                >
+                    <RefreshCw
+                        className={
+                            'h-4 w-4' + (refreshing ? ' animate-spin' : '')
+                        }
+                        strokeWidth={2}
+                    />
+                </button>
+            </div>
             <p className="mb-6 text-sm text-slate-500">
                 {fechaLarga(new Date())}
             </p>
@@ -172,13 +222,31 @@ export default function Dashboard({ stats = {} }) {
             </div>
 
             <div className="mb-6 rounded-3xl border border-white/5 bg-[#12121f] p-6">
-                <div className="text-3xl font-bold text-white">
-                    $
-                    {s.gastoComprasMes.toLocaleString('es-AR', {
-                        minimumFractionDigits: 2,
-                    })}
+                <div className="mb-1 flex items-center gap-2">
+                    <div className="text-3xl font-bold text-white">
+                        {montoOculto
+                            ? '••••••'
+                            : '$' +
+                              s.gastoComprasMes.toLocaleString('es-AR', {
+                                  minimumFractionDigits: 2,
+                              })}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setMontoOculto((v) => !v)}
+                        aria-label={
+                            montoOculto ? 'Mostrar monto' : 'Ocultar monto'
+                        }
+                        className="ml-auto text-slate-500 hover:text-slate-300"
+                    >
+                        {montoOculto ? (
+                            <Eye className="h-4 w-4" strokeWidth={2} />
+                        ) : (
+                            <EyeOff className="h-4 w-4" strokeWidth={2} />
+                        )}
+                    </button>
                 </div>
-                <div className="mt-1 text-sm text-slate-500">
+                <div className="text-sm text-slate-500">
                     Gasto en compras este mes
                 </div>
                 <div className="text-sm text-slate-600">
@@ -192,18 +260,21 @@ export default function Dashboard({ stats = {} }) {
                     iconClass="bg-emerald-500/10 text-emerald-400"
                     value={s.ingredientes}
                     label="Ingredientes"
+                    href="/ingredientes"
                 />
                 <StatTile
                     icon={ChefHat}
                     iconClass="bg-indigo-500/10 text-indigo-400"
                     value={s.recetas}
                     label="Recetas"
+                    href="/recetas"
                 />
                 <StatTile
                     icon={Calculator}
                     iconClass="bg-sky-500/10 text-sky-400"
                     value={s.presupuestos}
                     label="Presupuestos"
+                    href="/presupuestos"
                 />
             </div>
 
@@ -216,7 +287,7 @@ export default function Dashboard({ stats = {} }) {
                     iconClass="bg-indigo-500/10 text-indigo-400"
                     title="Cerrar el día"
                     subtitle="Producido vs vendido · merma · ganancia"
-                    href="/produccion"
+                    onClick={cerrarElDia}
                 />
                 <QuickAccessRow
                     icon={Plus}
@@ -248,12 +319,13 @@ export default function Dashboard({ stats = {} }) {
                         type="text"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        placeholder="Tu ciudad"
+                        placeholder="Ej: Palermo, Buenos Aires"
                         className="flex-1 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
                     />
                     <button
                         type="button"
-                        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
+                        disabled={!city.trim()}
+                        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-40"
                     >
                         Activar
                     </button>
