@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cierre;
 use App\Models\Merma;
+use App\Models\Receta;
 use App\Models\Venta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,24 +47,54 @@ class VentaController extends Controller
                     'total' => $cierre->total_ventas,
                     'fecha' => $cierre->fecha->format('d/m/Y'),
                 ]),
+            'recetasDisponibles' => Receta::where('user_id', $userId)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'precio_venta_sugerido']),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'producto' => ['required', 'string', 'max:255'],
+            'receta_id' => ['required', 'exists:recetas,id'],
             'cantidad' => ['required', 'integer', 'min:1'],
             'precio_unitario' => ['required', 'numeric', 'min:0'],
         ]);
 
+        $receta = Receta::where('user_id', $request->user()->id)
+            ->findOrFail($validated['receta_id']);
+
         Venta::create([
             'user_id' => $request->user()->id,
-            'producto' => $validated['producto'],
+            'receta_id' => $receta->id,
+            'producto' => $receta->nombre,
             'cantidad' => $validated['cantidad'],
             'precio_unitario' => $validated['precio_unitario'],
             'total' => $validated['cantidad'] * $validated['precio_unitario'],
             'vendido_at' => now(),
+        ]);
+
+        return redirect()->route('ventas.index');
+    }
+
+    public function storeMerma(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'receta_id' => ['required', 'exists:recetas,id'],
+            'cantidad' => ['required', 'integer', 'min:1'],
+            'motivo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $receta = Receta::where('user_id', $request->user()->id)
+            ->findOrFail($validated['receta_id']);
+
+        Merma::create([
+            'user_id' => $request->user()->id,
+            'receta_id' => $receta->id,
+            'producto' => $receta->nombre,
+            'cantidad' => $validated['cantidad'],
+            'motivo' => $validated['motivo'] ?? null,
+            'registrado_at' => now(),
         ]);
 
         return redirect()->route('ventas.index');

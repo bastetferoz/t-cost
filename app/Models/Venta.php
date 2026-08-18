@@ -12,6 +12,7 @@ class Venta extends Model
 
     protected $fillable = [
         'user_id',
+        'receta_id',
         'producto',
         'cantidad',
         'precio_unitario',
@@ -28,5 +29,10 @@ class Venta extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function receta(): BelongsTo
+    {
+        return $this->belongsTo(Receta::class);
     }
 }

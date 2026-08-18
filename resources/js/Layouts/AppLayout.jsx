@@ -49,8 +49,7 @@ function NavItem({ item, active }) {
 export default function AppLayout({ children, current }) {
     const { auth } = usePage().props;
     const user = auth?.user;
-    const businessName = user?.business_name || user?.name || 'Mi negocio';
-    const initial = businessName.trim().charAt(0).toUpperCase() || '?';
+    const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
 
     return (
         <div className="flex min-h-screen bg-[#0b0b14] text-slate-200">
@@ -106,7 +105,7 @@ export default function AppLayout({ children, current }) {
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
                             {initial}
                         </span>
-                        <span className="truncate">{businessName}</span>
+                        Mi cuenta
                     </div>
                 </div>
             </aside>

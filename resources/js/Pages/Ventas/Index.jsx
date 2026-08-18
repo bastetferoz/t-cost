@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Mic, Pencil, TriangleAlert, ShoppingCart, BookOpen } from 'lucide-react';
+import {
+    Mic,
+    Pencil,
+    TriangleAlert,
+    ShoppingCart,
+    BookOpen,
+    ChevronLeft,
+} from 'lucide-react';
 
 function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     const variants = {
@@ -66,14 +73,256 @@ const EMPTY_STATES = {
     },
 };
 
-export default function Ventas({ ventas = [], mermas = [], cierres = [] }) {
+function PanelVolver({ onVolver }) {
+    return (
+        <button
+            type="button"
+            onClick={onVolver}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200"
+        >
+            <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+            Volver
+        </button>
+    );
+}
+
+function GateSinRecetas({ mensaje, onVolver }) {
+    return (
+        <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
+            <PanelVolver onVolver={onVolver} />
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="max-w-sm text-sm text-slate-400">{mensaje}</p>
+                <div className="mt-5 flex items-center gap-4">
+                    <Link
+                        href="/recetas"
+                        className="text-sm font-semibold text-indigo-400 hover:text-indigo-300"
+                    >
+                        Ir a recetas →
+                    </Link>
+                    <button
+                        type="button"
+                        onClick={onVolver}
+                        className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+                    >
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function EscribirVentaForm({ recetas, onVolver }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        receta_id: '',
+        cantidad: '1',
+        precio_unitario: '',
+    });
+
+    function submit(e) {
+        e.preventDefault();
+        post(route('ventas.store'), { onSuccess: () => reset() });
+    }
+
+    return (
+        <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
+            <PanelVolver onVolver={onVolver} />
+            <h2 className="mb-5 text-lg font-bold text-white">
+                Registrar venta
+            </h2>
+            <form onSubmit={submit} className="max-w-md space-y-4">
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Receta
+                    </label>
+                    <select
+                        value={data.receta_id}
+                        onChange={(e) => setData('receta_id', e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                    >
+                        <option value="">Seleccioná una receta</option>
+                        {recetas.map((r) => (
+                            <option key={r.id} value={r.id}>
+                                {r.nombre}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.receta_id && (
+                        <p className="mt-1 text-xs text-rose-400">
+                            {errors.receta_id}
+                        </p>
+                    )}
+                </div>
+                <div className="flex gap-3">
+                    <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-slate-400">
+                            Cantidad
+                        </label>
+                        <input
+                            type="number"
+                            value={data.cantidad}
+                            onChange={(e) =>
+                                setData('cantidad', e.target.value)
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-slate-400">
+                            Precio unitario ($)
+                        </label>
+                        <input
+                            type="number"
+                            value={data.precio_unitario}
+                            onChange={(e) =>
+                                setData('precio_unitario', e.target.value)
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                </div>
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50"
+                >
+                    Guardar venta
+                </button>
+            </form>
+        </div>
+    );
+}
+
+function RegistrarMermaForm({ recetas, onVolver }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        receta_id: '',
+        cantidad: '1',
+        motivo: '',
+    });
+
+    function submit(e) {
+        e.preventDefault();
+        post(route('ventas.merma.store'), { onSuccess: () => reset() });
+    }
+
+    return (
+        <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
+            <PanelVolver onVolver={onVolver} />
+            <h2 className="mb-5 text-lg font-bold text-white">
+                Registrar merma
+            </h2>
+            <form onSubmit={submit} className="max-w-md space-y-4">
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Receta / producto
+                    </label>
+                    <select
+                        value={data.receta_id}
+                        onChange={(e) => setData('receta_id', e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                    >
+                        <option value="">Seleccioná una receta</option>
+                        {recetas.map((r) => (
+                            <option key={r.id} value={r.id}>
+                                {r.nombre}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.receta_id && (
+                        <p className="mt-1 text-xs text-rose-400">
+                            {errors.receta_id}
+                        </p>
+                    )}
+                </div>
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Cantidad perdida
+                    </label>
+                    <input
+                        type="number"
+                        value={data.cantidad}
+                        onChange={(e) => setData('cantidad', e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Motivo (opcional)
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Ej: se quemó, venció, se rompió"
+                        value={data.motivo}
+                        onChange={(e) => setData('motivo', e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-600/30 hover:bg-rose-500 disabled:opacity-50"
+                >
+                    Guardar merma
+                </button>
+            </form>
+        </div>
+    );
+}
+
+export default function Ventas({
+    ventas = [],
+    mermas = [],
+    cierres = [],
+    recetasDisponibles = [],
+}) {
     const [tab, setTab] = useState('ventas');
+    const [panel, setPanel] = useState('lista');
+
+    const sinRecetas = recetasDisponibles.length === 0;
 
     const dataByTab = { ventas, merma: mermas, cierres };
     const rows = dataByTab[tab] ?? [];
     const empty = EMPTY_STATES[tab];
     const EmptyIcon = empty.icon;
     const emptyEmoji = empty.emoji;
+
+    if (panel === 'venta') {
+        return (
+            <AppLayout current="Ventas">
+                <Head title="Ventas" />
+                {sinRecetas ? (
+                    <GateSinRecetas
+                        mensaje="Para registrar una venta necesitás tener recetas. Creá tu primera receta y volvé acá."
+                        onVolver={() => setPanel('lista')}
+                    />
+                ) : (
+                    <EscribirVentaForm
+                        recetas={recetasDisponibles}
+                        onVolver={() => setPanel('lista')}
+                    />
+                )}
+            </AppLayout>
+        );
+    }
+
+    if (panel === 'merma') {
+        return (
+            <AppLayout current="Ventas">
+                <Head title="Ventas" />
+                {sinRecetas ? (
+                    <GateSinRecetas
+                        mensaje="Primero creá recetas para poder registrar merma."
+                        onVolver={() => setPanel('lista')}
+                    />
+                ) : (
+                    <RegistrarMermaForm
+                        recetas={recetasDisponibles}
+                        onVolver={() => setPanel('lista')}
+                    />
+                )}
+            </AppLayout>
+        );
+    }
 
     return (
         <AppLayout current="Ventas">
@@ -83,13 +332,21 @@ export default function Ventas({ ventas = [], mermas = [], cierres = [] }) {
                 <ActionButton icon={Mic} variant="primary">
                     Dictar venta
                 </ActionButton>
-                <ActionButton icon={Pencil} variant="ghost">
+                <ActionButton
+                    icon={Pencil}
+                    variant="ghost"
+                    onClick={() => setPanel('venta')}
+                >
                     Escribir venta
                 </ActionButton>
                 <ActionButton icon={Mic} variant="dangerOutline">
                     Dictar merma
                 </ActionButton>
-                <ActionButton icon={TriangleAlert} variant="danger">
+                <ActionButton
+                    icon={TriangleAlert}
+                    variant="danger"
+                    onClick={() => setPanel('merma')}
+                >
                     Registrar merma
                 </ActionButton>
             </div>

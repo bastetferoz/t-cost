@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Mic, Pencil } from 'lucide-react';
+import { Mic, Pencil, ChevronLeft, Plus, Trash2 } from 'lucide-react';
 
-function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
+function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     const variants = {
         primary:
             'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30',
@@ -12,6 +13,7 @@ function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
     return (
         <button
             type="button"
+            onClick={onClick}
             className={
                 'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ' +
                 variants[variant]
@@ -23,7 +25,202 @@ function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
     );
 }
 
-export default function Recetas({ recetas = [] }) {
+function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        nombre: '',
+        rendimiento_cantidad: '',
+        rendimiento_unidad: 'unidades',
+        ingredientes: [{ ingrediente_id: '', cantidad: '' }],
+    });
+
+    function actualizarLinea(index, campo, valor) {
+        const lineas = [...data.ingredientes];
+        lineas[index] = { ...lineas[index], [campo]: valor };
+        setData('ingredientes', lineas);
+    }
+
+    function agregarLinea() {
+        setData('ingredientes', [
+            ...data.ingredientes,
+            { ingrediente_id: '', cantidad: '' },
+        ]);
+    }
+
+    function quitarLinea(index) {
+        setData(
+            'ingredientes',
+            data.ingredientes.filter((_, i) => i !== index),
+        );
+    }
+
+    function submit(e) {
+        e.preventDefault();
+        post(route('recetas.store'), { onSuccess: () => reset() });
+    }
+
+    return (
+        <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
+            <button
+                type="button"
+                onClick={onVolver}
+                className="mb-4 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200"
+            >
+                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                Volver
+            </button>
+
+            <h2 className="mb-5 text-lg font-bold text-white">
+                Nueva receta
+            </h2>
+
+            <form onSubmit={submit} className="max-w-xl space-y-5">
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Nombre de la receta
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Ej: Medialunas (docena)"
+                        value={data.nombre}
+                        onChange={(e) => setData('nombre', e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                    />
+                    {errors.nombre && (
+                        <p className="mt-1 text-xs text-rose-400">
+                            {errors.nombre}
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex gap-3">
+                    <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-slate-400">
+                            Rendimiento
+                        </label>
+                        <input
+                            type="number"
+                            placeholder="Ej: 12"
+                            value={data.rendimiento_cantidad}
+                            onChange={(e) =>
+                                setData(
+                                    'rendimiento_cantidad',
+                                    e.target.value,
+                                )
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-slate-400">
+                            Unidad
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="Ej: unidades"
+                            value={data.rendimiento_unidad}
+                            onChange={(e) =>
+                                setData('rendimiento_unidad', e.target.value)
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                </div>
+
+                <div className="border-t border-white/5 pt-5">
+                    <p className="mb-3 text-sm text-slate-400">
+                        Ingredientes de la receta
+                    </p>
+
+                    <div className="space-y-3">
+                        {data.ingredientes.map((linea, index) => (
+                            <div key={index} className="flex gap-2">
+                                <select
+                                    value={linea.ingrediente_id}
+                                    onChange={(e) =>
+                                        actualizarLinea(
+                                            index,
+                                            'ingrediente_id',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="flex-1 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                >
+                                    <option value="">
+                                        Seleccioná un ingrediente
+                                    </option>
+                                    {ingredientesDisponibles.map((ing) => (
+                                        <option key={ing.id} value={ing.id}>
+                                            {ing.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="number"
+                                    placeholder="Cantidad"
+                                    value={linea.cantidad}
+                                    onChange={(e) =>
+                                        actualizarLinea(
+                                            index,
+                                            'cantidad',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-28 rounded-xl border border-white/10 bg-[#0b0b14] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                                />
+                                {data.ingredientes.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => quitarLinea(index)}
+                                        className="rounded-xl border border-white/10 px-3 text-slate-500 hover:text-rose-400"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={agregarLinea}
+                        className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-400 hover:text-indigo-300"
+                    >
+                        <Plus className="h-4 w-4" strokeWidth={2.25} />
+                        Agregar ingrediente
+                    </button>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50"
+                >
+                    Guardar receta
+                </button>
+            </form>
+        </div>
+    );
+}
+
+export default function Recetas({ recetas = [], ingredientesDisponibles = [] }) {
+    const [mostrarForm, setMostrarForm] = useState(false);
+    const sinIngredientes = ingredientesDisponibles.length === 0;
+
+    if (mostrarForm && !sinIngredientes) {
+        return (
+            <AppLayout current="Recetas">
+                <Head title="Recetas" />
+                <h1 className="mb-6 text-2xl font-bold text-white">
+                    Recetas
+                </h1>
+                <NuevaRecetaForm
+                    ingredientesDisponibles={ingredientesDisponibles}
+                    onVolver={() => setMostrarForm(false)}
+                />
+            </AppLayout>
+        );
+    }
+
     return (
         <AppLayout current="Recetas">
             <Head title="Recetas" />
@@ -34,7 +231,11 @@ export default function Recetas({ recetas = [] }) {
                 <ActionButton icon={Mic} variant="primary">
                     Dictar receta
                 </ActionButton>
-                <ActionButton icon={Pencil} variant="ghost">
+                <ActionButton
+                    icon={Pencil}
+                    variant="ghost"
+                    onClick={() => setMostrarForm(true)}
+                >
                     Escribir receta
                 </ActionButton>
             </div>
@@ -58,7 +259,40 @@ export default function Recetas({ recetas = [] }) {
                             Ir a ingredientes
                         </Link>
                     </div>
-                ) : null}
+                ) : (
+                    <table className="w-full text-left text-sm">
+                        <thead>
+                            <tr className="border-b border-white/5 text-slate-500">
+                                <th className="py-2 font-medium">Nombre</th>
+                                <th className="py-2 font-medium">
+                                    Rendimiento
+                                </th>
+                                <th className="py-2 font-medium">
+                                    Costo total
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {recetas.map((r) => (
+                                <tr
+                                    key={r.id}
+                                    className="border-b border-white/5 last:border-0"
+                                >
+                                    <td className="py-3 text-slate-100">
+                                        {r.nombre}
+                                    </td>
+                                    <td className="py-3 text-slate-400">
+                                        {r.rendimiento_cantidad}{' '}
+                                        {r.rendimiento_unidad}
+                                    </td>
+                                    <td className="py-3 text-slate-400">
+                                        ${r.costo_total?.toFixed?.(2) ?? r.costo_total}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </AppLayout>
     );

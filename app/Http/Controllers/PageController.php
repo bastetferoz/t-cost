@@ -2,22 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
+use App\Models\Ingrediente;
+use App\Models\Presupuesto;
+use App\Models\Receta;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PageController extends Controller
 {
-    public function dashboard(): Response
+    public function dashboard(Request $request): Response
     {
-        $user = Auth::user();
+        $userId = $request->user()->id;
+
+        $gastoComprasMes = Ingrediente::where('user_id', $userId)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('precio_total_pagado');
 
         return Inertia::render('Dashboard', [
             'stats' => [
-                'gastoComprasMes' => 0,
-                'ingredientes' => 0,
-                'recetas' => 0,
-                'presupuestos' => 0,
+                'gastoComprasMes' => (float) $gastoComprasMes,
+                'ingredientes' => Ingrediente::where('user_id', $userId)->count(),
+                'recetas' => Receta::where('user_id', $userId)->count(),
+                'presupuestos' => Presupuesto::where('user_id', $userId)->count(),
             ],
         ]);
     }
@@ -27,23 +34,8 @@ class PageController extends Controller
         return Inertia::render('Facturas', ['facturas' => []]);
     }
 
-    public function ingredientes(): Response
-    {
-        return Inertia::render('Ingredientes', ['ingredientes' => []]);
-    }
-
-    public function recetas(): Response
-    {
-        return Inertia::render('Recetas', ['recetas' => []]);
-    }
-
     public function produccion(): Response
     {
         return Inertia::render('Produccion', ['producciones' => []]);
-    }
-
-    public function presupuestos(): Response
-    {
-        return Inertia::render('Presupuestos', ['presupuestos' => []]);
     }
 }

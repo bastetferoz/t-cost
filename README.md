@@ -7,8 +7,12 @@ Stack: **Laravel 13** + **Inertia.js** + **React** + **Tailwind CSS**.
 ## Estructura
 
 - `app/Http/Controllers` — controladores de cada sección (Dashboard, Ventas, Facturas, Ingredientes, Recetas, Producción, Presupuestos, Perfil).
-- `app/Models` — `Venta`, `Merma`, `Cierre`, `User` (con los campos de negocio: `business_name`, `business_type`, `brand_color`, `logo_path`, `city`).
-- `database/migrations` — tablas de `ventas`, `mermas`, `cierres`, y los campos de negocio agregados a `users` (además de las de autenticación que trae Laravel/Breeze).
+- `app/Models` — `Ingrediente`, `Receta` (con su pivot `receta_ingrediente`), `Venta`, `Merma`, `Cierre`, `Presupuesto`, `User` (con los campos de negocio: `business_name`, `business_type`, `brand_color`, `logo_path`, `city`).
+- `database/migrations` — tablas de `ingredientes`, `recetas`, `receta_ingrediente`, `ventas`, `mermas`, `cierres`, `presupuestos`, y los campos de negocio agregados a `users` (además de las de autenticación que trae Laravel/Breeze).
+
+**Cadena de dependencias (igual que en la app real):** Ingredientes → Recetas → Ventas / Merma. No podés escribir una receta sin ingredientes cargados, ni registrar una venta o una merma sin al menos una receta — la UI muestra el mismo mensaje de bloqueo que la app original en cada caso ("Para armar una receta primero necesitás ingredientes...", "Para registrar una venta necesitás tener recetas...", "Primero creá recetas para poder registrar merma.").
+
+**Qué es 1:1 verificado vs. mi mejor estimación:** el formulario de "Cargar manualmente" en Ingredientes (campos, unidades, textos) lo tomé exactamente de la app real, botón por botón. Los formularios de "Escribir receta", "Escribir venta", "Registrar merma" y "Nuevo presupuesto" son mi mejor reconstrucción funcional (mismos campos que tendría sentido pedir) porque en la cuenta real esas pantallas están bloqueadas hasta tener datos previos cargados — no pude verlas para copiarlas exactas. Si las armás en la app real y no coinciden, mandame una captura y las ajusto.
 - `resources/js/Layouts/AppLayout.jsx` — layout general con el sidebar oscuro (Inicio → `/dashboard`, Facturas, Ingredientes, Recetas, Producción, Ventas, Presupuestos, Compartir la app → enlace de WhatsApp, Mi perfil, y el nombre del negocio abajo de todo).
 - `resources/js/Pages` — una página Inertia/React por sección, con la copy y los botones tal como están en la app real (textos de estados vacíos, íconos/emojis, CTAs). `Ventas/Index.jsx` reproduce la pantalla de Ventas con sus 3 tabs (Ventas/Merma/Cierres), cada uno con su propio estado vacío. `Profile/Edit.jsx` reproduce "Mi perfil" (plan actual, datos del negocio, marca, ubicación, cuenta, equipo).
 
