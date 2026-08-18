@@ -1,8 +1,9 @@
+import { useRef, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Camera, Mic } from 'lucide-react';
 
-function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
+function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     const variants = {
         primary:
             'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30',
@@ -12,6 +13,7 @@ function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
     return (
         <button
             type="button"
+            onClick={onClick}
             className={
                 'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ' +
                 variants[variant]
@@ -23,7 +25,45 @@ function ActionButton({ icon: Icon, children, variant = 'ghost' }) {
     );
 }
 
+function OpcionEscaneo({ icon: Icon, title, subtitle, active, onClick }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={
+                'flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left transition ' +
+                (active
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                    : 'bg-[#0e0e1a] text-slate-200 hover:bg-white/5')
+            }
+        >
+            <div
+                className={
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ' +
+                    (active ? 'bg-white/15' : 'bg-white/5')
+                }
+            >
+                {Icon}
+            </div>
+            <div>
+                <div className="font-semibold">{title}</div>
+                <div
+                    className={
+                        'text-sm ' + (active ? 'text-white/80' : 'text-slate-500')
+                    }
+                >
+                    {subtitle}
+                </div>
+            </div>
+        </button>
+    );
+}
+
 export default function Facturas({ facturas = [] }) {
+    const [mostrarOpciones, setMostrarOpciones] = useState(false);
+    const camaraInputRef = useRef(null);
+    const galeriaInputRef = useRef(null);
+
     return (
         <AppLayout current="Facturas">
             <Head title="Facturas" />
@@ -31,13 +71,53 @@ export default function Facturas({ facturas = [] }) {
             <h1 className="mb-6 text-2xl font-bold text-white">Facturas</h1>
 
             <div className="mb-6 flex flex-wrap items-center gap-3">
-                <ActionButton icon={Camera} variant="primary">
+                <ActionButton
+                    icon={Camera}
+                    variant="primary"
+                    onClick={() => setMostrarOpciones(true)}
+                >
                     Escanear factura
                 </ActionButton>
                 <ActionButton icon={Mic} variant="ghost">
                     Dictar compra
                 </ActionButton>
             </div>
+
+            {mostrarOpciones && (
+                <div className="mb-6 rounded-3xl border border-white/5 bg-[#12121f] p-6">
+                    <h2 className="mb-4 text-lg font-bold text-white">
+                        Escanear factura
+                    </h2>
+                    <div className="space-y-3">
+                        <OpcionEscaneo
+                            icon="📷"
+                            title="Sacar foto ahora"
+                            subtitle="Abrí la cámara del celular"
+                            active
+                            onClick={() => camaraInputRef.current?.click()}
+                        />
+                        <OpcionEscaneo
+                            icon="🖼️"
+                            title="Elegir de la galería"
+                            subtitle="Seleccioná una foto existente"
+                            onClick={() => galeriaInputRef.current?.click()}
+                        />
+                    </div>
+                    <input
+                        ref={camaraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                    />
+                    <input
+                        ref={galeriaInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                    />
+                </div>
+            )}
 
             <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
                 {facturas.length === 0 ? (
@@ -53,6 +133,7 @@ export default function Facturas({ facturas = [] }) {
                         </p>
                         <button
                             type="button"
+                            onClick={() => setMostrarOpciones(true)}
                             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500"
                         >
                             <Camera className="h-4 w-4" strokeWidth={2.25} />
