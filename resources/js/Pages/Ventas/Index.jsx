@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import {
-    Mic,
-    Pencil,
-    TriangleAlert,
-    ShoppingCart,
-    PackageX,
-    FileBarChart2,
-} from 'lucide-react';
+import { Mic, Pencil, TriangleAlert, ShoppingCart, BookOpen } from 'lucide-react';
 
 function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     const variants = {
@@ -60,16 +53,16 @@ const EMPTY_STATES = {
             'Registrá tus ventas para ver tus ingresos y saber qué producto vendés más.',
     },
     merma: {
-        icon: PackageX,
+        emoji: '✅',
         title: 'Sin merma registrada',
         subtitle:
-            'Registrá la merma de tus ingredientes o productos para llevar un control real de tus costos.',
+            'Si perdiste o desechaste algún producto, registralo acá para tener el dato real.',
     },
     cierres: {
-        icon: FileBarChart2,
+        icon: BookOpen,
         title: 'Sin cierres registrados',
         subtitle:
-            'Cerrá tu jornada o tu caja para ver un resumen de ventas, merma e ingresos por período.',
+            'Cada vez que cerrás el día desde el dashboard, el registro aparece acá.',
     },
 };
 
@@ -80,6 +73,7 @@ export default function Ventas({ ventas = [], mermas = [], cierres = [] }) {
     const rows = dataByTab[tab] ?? [];
     const empty = EMPTY_STATES[tab];
     const EmptyIcon = empty.icon;
+    const emptyEmoji = empty.emoji;
 
     return (
         <AppLayout current="Ventas">
@@ -115,10 +109,14 @@ export default function Ventas({ ventas = [], mermas = [], cierres = [] }) {
             <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
                 {rows.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <EmptyIcon
-                            className="mb-4 h-12 w-12 text-slate-600"
-                            strokeWidth={1.5}
-                        />
+                        {emptyEmoji ? (
+                            <div className="mb-4 text-5xl">{emptyEmoji}</div>
+                        ) : (
+                            <EmptyIcon
+                                className="mb-4 h-12 w-12 text-slate-600"
+                                strokeWidth={1.5}
+                            />
+                        )}
                         <p className="text-lg font-semibold text-slate-200">
                             {empty.title}
                         </p>

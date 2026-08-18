@@ -11,8 +11,14 @@ import {
     CircleUser,
 } from 'lucide-react';
 
+const WHATSAPP_SHARE_URL =
+    'https://wa.me/?text=' +
+    encodeURIComponent(
+        'Por fin sé cuánto me cuesta cada producto 🍞 Estoy usando InstaCost para calcular los costos de mi panadería. Nunca más pongo los precios a ojo. Probalo gratis → www.instacost.shop',
+    );
+
 const NAV_ITEMS = [
-    { name: 'Inicio', href: '/inicio', icon: LayoutGrid },
+    { name: 'Inicio', href: '/dashboard', icon: LayoutGrid },
     { name: 'Facturas', href: '/facturas', icon: Receipt },
     { name: 'Ingredientes', href: '/ingredientes', icon: Package },
     { name: 'Recetas', href: '/recetas', icon: ChefHat },
@@ -43,7 +49,8 @@ function NavItem({ item, active }) {
 export default function AppLayout({ children, current }) {
     const { auth } = usePage().props;
     const user = auth?.user;
-    const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
+    const businessName = user?.business_name || user?.name || 'Mi negocio';
+    const initial = businessName.trim().charAt(0).toUpperCase() || '?';
 
     return (
         <div className="flex min-h-screen bg-[#0b0b14] text-slate-200">
@@ -74,13 +81,15 @@ export default function AppLayout({ children, current }) {
                 </nav>
 
                 <div className="mt-6 flex flex-col gap-1 border-t border-white/5 pt-4">
-                    <Link
-                        href="/compartir"
+                    <a
+                        href={WHATSAPP_SHARE_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-white/5"
                     >
                         <Share2 className="h-[18px] w-[18px]" strokeWidth={2} />
                         Compartir la app
-                    </Link>
+                    </a>
                     <Link
                         href="/perfil"
                         className={
@@ -93,15 +102,12 @@ export default function AppLayout({ children, current }) {
                         <CircleUser className="h-[18px] w-[18px]" strokeWidth={2} />
                         Mi perfil
                     </Link>
-                    <Link
-                        href="/perfil"
-                        className="mt-2 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5"
-                    >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
+                    <div className="mt-2 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-300">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
                             {initial}
                         </span>
-                        Mi cuenta
-                    </Link>
+                        <span className="truncate">{businessName}</span>
+                    </div>
                 </div>
             </aside>
 

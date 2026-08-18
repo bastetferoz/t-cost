@@ -2,14 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PageController extends Controller
 {
-    public function inicio(): Response
+    public function dashboard(): Response
     {
-        return Inertia::render('Inicio');
+        $user = Auth::user();
+
+        return Inertia::render('Dashboard', [
+            'stats' => [
+                'gastoComprasMes' => 0,
+                'ingredientes' => 0,
+                'recetas' => 0,
+                'presupuestos' => 0,
+            ],
+        ]);
     }
 
     public function facturas(): Response

@@ -4,14 +4,13 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('inicio');
+    return redirect()->route('dashboard');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/inicio', [PageController::class, 'inicio'])->name('inicio');
+    Route::get('/dashboard', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/facturas', [PageController::class, 'facturas'])->name('facturas');
     Route::get('/ingredientes', [PageController::class, 'ingredientes'])->name('ingredientes');
     Route::get('/recetas', [PageController::class, 'recetas'])->name('recetas');
@@ -20,10 +19,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/ventas', [VentaController::class, 'index'])->name('ventas.index');
     Route::post('/ventas', [VentaController::class, 'store'])->name('ventas.store');
-
-    Route::get('/compartir', function () {
-        return Inertia::render('Compartir');
-    })->name('compartir');
 });
 
 Route::middleware('auth')->group(function () {
