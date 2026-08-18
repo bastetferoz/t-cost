@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'nombre',
     'rendimiento_cantidad',
     'rendimiento_unidad',
+    'vida_util_dias',
     'precio_venta_sugerido',
 ])]
 class Receta extends Model

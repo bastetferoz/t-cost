@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Mic, Pencil, ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { Mic, Pencil, ChevronLeft, Plus, X } from 'lucide-react';
 
 function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     const variants = {
@@ -25,12 +25,25 @@ function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
     );
 }
 
+const UNIDADES_CONSUMO = [
+    { value: 'G', label: 'gramos (g)' },
+    { value: 'KG', label: 'kilogramos (kg)' },
+    { value: 'ML', label: 'mililitros (ml)' },
+    { value: 'L', label: 'litros (L)' },
+    { value: 'UNIDAD', label: 'unidades' },
+];
+
+function nuevaLinea() {
+    return { ingrediente_id: '', cantidad: '', unidad: '' };
+}
+
 function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         nombre: '',
-        rendimiento_cantidad: '',
-        rendimiento_unidad: 'unidades',
-        ingredientes: [{ ingrediente_id: '', cantidad: '' }],
+        rendimiento_cantidad: 1,
+        rendimiento_unidad: 'unidad',
+        vida_util_dias: '',
+        ingredientes: [nuevaLinea()],
     });
 
     function actualizarLinea(index, campo, valor) {
@@ -40,10 +53,7 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
     }
 
     function agregarLinea() {
-        setData('ingredientes', [
-            ...data.ingredientes,
-            { ingrediente_id: '', cantidad: '' },
-        ]);
+        setData('ingredientes', [...data.ingredientes, nuevaLinea()]);
     }
 
     function quitarLinea(index) {
@@ -55,7 +65,16 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('recetas.store'), { onSuccess: () => reset() });
+        post(route('recetas.store'), {
+            onSuccess: () => reset(),
+            // Los items vacíos (sin ingrediente seleccionado) no se envían.
+            transform: (formData) => ({
+                ...formData,
+                ingredientes: formData.ingredientes.filter(
+                    (l) => l.ingrediente_id,
+                ),
+            }),
+        });
     }
 
     return (
@@ -76,11 +95,11 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
             <form onSubmit={submit} className="max-w-xl space-y-5">
                 <div>
                     <label className="mb-1.5 block text-sm text-slate-400">
-                        Nombre de la receta
+                        Nombre
                     </label>
                     <input
                         type="text"
-                        placeholder="Ej: Medialunas (docena)"
+                        placeholder="Ej: Medialunas de manteca"
                         value={data.nombre}
                         onChange={(e) => setData('nombre', e.target.value)}
                         className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
@@ -92,90 +111,144 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
                     )}
                 </div>
 
-                <div className="flex gap-3">
-                    <div className="flex-1">
-                        <label className="mb-1.5 block text-sm text-slate-400">
-                            Rendimiento
-                        </label>
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Rinde
+                    </label>
+                    <div className="flex gap-3">
                         <input
                             type="number"
-                            placeholder="Ej: 12"
                             value={data.rendimiento_cantidad}
                             onChange={(e) =>
-                                setData(
-                                    'rendimiento_cantidad',
-                                    e.target.value,
-                                )
+                                setData('rendimiento_cantidad', e.target.value)
                             }
-                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                            className="w-24 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
                         />
-                    </div>
-                    <div className="flex-1">
-                        <label className="mb-1.5 block text-sm text-slate-400">
-                            Unidad
-                        </label>
                         <input
                             type="text"
-                            placeholder="Ej: unidades"
                             value={data.rendimiento_unidad}
                             onChange={(e) =>
                                 setData('rendimiento_unidad', e.target.value)
                             }
-                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                            className="flex-1 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
                         />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="mb-1.5 block text-sm text-slate-400">
+                        Vida útil{' '}
+                        <span className="text-slate-600">(opcional)</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="number"
+                            placeholder="Ej: 3"
+                            value={data.vida_util_dias}
+                            onChange={(e) =>
+                                setData('vida_util_dias', e.target.value)
+                            }
+                            className="w-24 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                        />
+                        <span className="text-sm text-slate-500">
+                            días desde la producción
+                        </span>
                     </div>
                 </div>
 
                 <div className="border-t border-white/5 pt-5">
                     <p className="mb-3 text-sm text-slate-400">
-                        Ingredientes de la receta
+                        Ingredientes{' '}
+                        <span className="text-slate-600">
+                            (opcional si usás sub-recetas)
+                        </span>
                     </p>
 
                     <div className="space-y-3">
                         {data.ingredientes.map((linea, index) => (
-                            <div key={index} className="flex gap-2">
-                                <select
-                                    value={linea.ingrediente_id}
-                                    onChange={(e) =>
-                                        actualizarLinea(
-                                            index,
-                                            'ingrediente_id',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="flex-1 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-                                >
-                                    <option value="">
-                                        Seleccioná un ingrediente
-                                    </option>
-                                    {ingredientesDisponibles.map((ing) => (
-                                        <option key={ing.id} value={ing.id}>
-                                            {ing.nombre}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="number"
-                                    placeholder="Cantidad"
-                                    value={linea.cantidad}
-                                    onChange={(e) =>
-                                        actualizarLinea(
-                                            index,
-                                            'cantidad',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="w-28 rounded-xl border border-white/10 bg-[#0b0b14] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                                />
-                                {data.ingredientes.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => quitarLinea(index)}
-                                        className="rounded-xl border border-white/10 px-3 text-slate-500 hover:text-rose-400"
+                            <div
+                                key={index}
+                                className="rounded-2xl border border-white/5 bg-[#0e0e1a] p-4"
+                            >
+                                <div className="mb-3 flex items-center gap-2">
+                                    <select
+                                        value={linea.ingrediente_id}
+                                        onChange={(e) =>
+                                            actualizarLinea(
+                                                index,
+                                                'ingrediente_id',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="flex-1 rounded-xl border border-white/10 bg-[#0b0b14] px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                )}
+                                        <option value="">
+                                            Seleccioná un ingrediente
+                                        </option>
+                                        {ingredientesDisponibles.map((ing) => (
+                                            <option key={ing.id} value={ing.id}>
+                                                {ing.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {data.ingredientes.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => quitarLinea(index)}
+                                            className="text-slate-500 hover:text-rose-400"
+                                        >
+                                            <X className="h-4 w-4" strokeWidth={2} />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="mb-1 block text-[11px] uppercase tracking-wide text-slate-500">
+                                            Cantidad
+                                        </label>
+                                        <input
+                                            type="number"
+                                            placeholder="Cantidad"
+                                            value={linea.cantidad}
+                                            onChange={(e) =>
+                                                actualizarLinea(
+                                                    index,
+                                                    'cantidad',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-[11px] uppercase tracking-wide text-slate-500">
+                                            Unidad
+                                        </label>
+                                        <select
+                                            value={linea.unidad}
+                                            onChange={(e) =>
+                                                actualizarLinea(
+                                                    index,
+                                                    'unidad',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-xl border border-white/10 bg-[#0b0b14] px-3 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                        >
+                                            <option value="">
+                                                Seleccioná una medida
+                                            </option>
+                                            {UNIDADES_CONSUMO.map((u) => (
+                                                <option
+                                                    key={u.value}
+                                                    value={u.value}
+                                                >
+                                                    {u.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>

@@ -40,9 +40,11 @@ class RecetaController extends Controller
             'nombre' => ['required', 'string', 'max:255'],
             'rendimiento_cantidad' => ['required', 'numeric', 'min:0.01'],
             'rendimiento_unidad' => ['required', 'string', 'max:255'],
-            'ingredientes' => ['required', 'array', 'min:1'],
+            'vida_util_dias' => ['nullable', 'integer', 'min:1'],
+            'ingredientes' => ['nullable', 'array'],
             'ingredientes.*.ingrediente_id' => ['required', 'exists:ingredientes,id'],
             'ingredientes.*.cantidad' => ['required', 'numeric', 'min:0.001'],
+            'ingredientes.*.unidad' => ['nullable', 'string', 'in:G,KG,ML,L,UNIDAD'],
         ]);
 
         $receta = DB::transaction(function () use ($request, $validated) {
@@ -51,11 +53,13 @@ class RecetaController extends Controller
                 'nombre' => $validated['nombre'],
                 'rendimiento_cantidad' => $validated['rendimiento_cantidad'],
                 'rendimiento_unidad' => $validated['rendimiento_unidad'],
+                'vida_util_dias' => $validated['vida_util_dias'] ?? null,
             ]);
 
-            foreach ($validated['ingredientes'] as $linea) {
+            foreach ($validated['ingredientes'] ?? [] as $linea) {
                 $receta->ingredientes()->attach($linea['ingrediente_id'], [
                     'cantidad' => $linea['cantidad'],
+                    'unidad' => $linea['unidad'] ?? null,
                 ]);
             }
 
