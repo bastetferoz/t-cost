@@ -20,8 +20,8 @@ class VentaController extends Controller
         return Inertia::render('Ventas/Index', [
             'ventas' => Venta::where('user_id', $userId)
                 ->latest('vendido_at')
-                ->get()
-                ->map(fn (Venta $venta) => [
+                ->paginate(20, ['*'], 'ventas_page')
+                ->through(fn (Venta $venta) => [
                     'id' => $venta->id,
                     'producto' => $venta->producto,
                     'cantidad' => $venta->cantidad,
@@ -30,8 +30,8 @@ class VentaController extends Controller
                 ]),
             'mermas' => Merma::where('user_id', $userId)
                 ->latest('registrado_at')
-                ->get()
-                ->map(fn (Merma $merma) => [
+                ->paginate(20, ['*'], 'mermas_page')
+                ->through(fn (Merma $merma) => [
                     'id' => $merma->id,
                     'producto' => $merma->producto,
                     'cantidad' => $merma->cantidad,
@@ -39,8 +39,8 @@ class VentaController extends Controller
                 ]),
             'cierres' => Cierre::where('user_id', $userId)
                 ->latest('fecha')
-                ->get()
-                ->map(fn (Cierre $cierre) => [
+                ->paginate(20, ['*'], 'cierres_page')
+                ->through(fn (Cierre $cierre) => [
                     'id' => $cierre->id,
                     'producto' => 'Cierre del '.$cierre->fecha->format('d/m/Y'),
                     'cantidad' => '—',
@@ -74,7 +74,7 @@ class VentaController extends Controller
             'vendido_at' => now(),
         ]);
 
-        return redirect()->route('ventas.index');
+        return redirect()->route('ventas.index')->with('success', 'Venta registrada correctamente.');
     }
 
     public function storeMerma(Request $request): RedirectResponse
@@ -97,6 +97,6 @@ class VentaController extends Controller
             'registrado_at' => now(),
         ]);
 
-        return redirect()->route('ventas.index');
+        return redirect()->route('ventas.index')->with('success', 'Merma registrada correctamente.');
     }
 }

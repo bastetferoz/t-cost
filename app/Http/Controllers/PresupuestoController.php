@@ -18,8 +18,8 @@ class PresupuestoController extends Controller
         $presupuestos = Presupuesto::where('user_id', $request->user()->id)
             ->with('items.receta')
             ->latest()
-            ->get()
-            ->map(fn (Presupuesto $p) => [
+            ->paginate(20)
+            ->through(fn (Presupuesto $p) => [
                 'id' => $p->id,
                 'nombre' => $p->nombre,
                 'fecha_servicio' => $p->fecha_servicio?->format('Y-m-d'),
@@ -49,13 +49,23 @@ class PresupuestoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $userId = $request->user()->id;
+
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'fecha_servicio' => ['nullable', 'date'],
             'descripcion' => ['nullable', 'string', 'max:2000'],
             'items' => ['array'],
             'items.*.tipo' => ['required', 'in:receta,libre'],
-            'items.*.receta_id' => ['nullable', 'required_if:items.*.tipo,receta', 'exists:recetas,id'],
+            'items.*.receta_id' => [
+                'nullable',
+                'required_if:items.*.tipo,receta',
+                function (string $attribute, mixed $value, \Closure $fail) use ($userId) {
+                    if ($value && ! Receta::where('id', $value)->where('user_id', $userId)->exists()) {
+                        $fail('La receta seleccionada no es válida.');
+                    }
+                },
+            ],
             'items.*.descripcion' => ['nullable', 'required_if:items.*.tipo,libre', 'string', 'max:255'],
             'items.*.cantidad' => ['nullable', 'numeric', 'min:0'],
             'items.*.unidad' => ['nullable', 'string', 'max:50'],
@@ -63,7 +73,6 @@ class PresupuestoController extends Controller
             'items.*.precio_venta_total' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $userId = $request->user()->id;
         $items = $validated['items'] ?? [];
 
         // Solo se permiten recetas del propio usuario.
@@ -134,6 +143,6 @@ class PresupuestoController extends Controller
             }
         });
 
-        return redirect()->route('presupuestos.index');
+        return redirect()->route('presupuestos.index')->with('success', 'Presupuesto creado correctamente.');
     }
 }

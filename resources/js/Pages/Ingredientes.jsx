@@ -1,29 +1,9 @@
 import { useState } from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Mic, Pencil, ChevronLeft } from 'lucide-react';
-
-function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
-    const variants = {
-        primary:
-            'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30',
-        ghost: 'bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10',
-    };
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={
-                'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ' +
-                variants[variant]
-            }
-        >
-            <Icon className="h-4 w-4" strokeWidth={2.25} />
-            {children}
-        </button>
-    );
-}
+import ActionButton from '@/Components/ActionButton';
+import Pagination from '@/Components/Pagination';
+import { Mic, Pencil, ChevronLeft, Trash2, Edit3 } from 'lucide-react';
 
 const UNIDADES_COMPRA = [
     { value: 'G', label: 'gramos (g)' },
@@ -43,21 +23,29 @@ const UNIDADES_STOCK = [
     { value: 'UNIDAD', label: 'unidades' },
 ];
 
-function NuevoIngredienteForm({ onVolver }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        nombre: '',
-        compra_cantidad: '',
-        compra_unidad: '',
-        precio_total_pagado: '',
-        stock_cantidad: '',
-        stock_unidad: '',
+function IngredienteForm({ onVolver, ingrediente = null }) {
+    const isEditing = !!ingrediente;
+
+    const { data, setData, post, put, processing, errors, reset } = useForm({
+        nombre: ingrediente?.nombre || '',
+        compra_cantidad: ingrediente?.compra_cantidad || '',
+        compra_unidad: ingrediente?.compra_unidad || '',
+        precio_total_pagado: ingrediente?.precio_total_pagado || '',
+        stock_cantidad: ingrediente?.stock_cantidad || '',
+        stock_unidad: ingrediente?.stock_unidad || '',
     });
 
     function submit(e) {
         e.preventDefault();
-        post(route('ingredientes.store'), {
-            onSuccess: () => reset(),
-        });
+        if (isEditing) {
+            put(route('ingredientes.update', ingrediente.id), {
+                onSuccess: () => onVolver(),
+            });
+        } else {
+            post(route('ingredientes.store'), {
+                onSuccess: () => reset(),
+            });
+        }
     }
 
     return (
@@ -72,7 +60,7 @@ function NuevoIngredienteForm({ onVolver }) {
             </button>
 
             <h2 className="mb-5 text-lg font-bold text-white">
-                Nuevo ingrediente
+                {isEditing ? 'Editar ingrediente' : 'Nuevo ingrediente'}
             </h2>
 
             <form onSubmit={submit} className="max-w-xl space-y-5">
@@ -193,24 +181,46 @@ function NuevoIngredienteForm({ onVolver }) {
                     disabled={processing}
                     className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50"
                 >
-                    Guardar ingrediente
+                    {isEditing ? 'Guardar cambios' : 'Guardar ingrediente'}
                 </button>
             </form>
         </div>
     );
 }
 
-export default function Ingredientes({ ingredientes = [] }) {
-    const [mostrarForm, setMostrarForm] = useState(false);
+export default function Ingredientes({ ingredientes = {} }) {
+    const [panel, setPanel] = useState('lista');
+    const [editando, setEditando] = useState(null);
 
-    if (mostrarForm) {
+    const items = ingredientes.data || [];
+    const paginationLinks = ingredientes.links || [];
+    const paginationMeta = ingredientes.meta || ingredientes;
+
+    function handleEditar(ing) {
+        setEditando(ing);
+        setPanel('form');
+    }
+
+    function handleEliminar(ing) {
+        if (confirm(`¿Eliminar "${ing.nombre}"? Esta acción no se puede deshacer.`)) {
+            router.delete(route('ingredientes.destroy', ing.id));
+        }
+    }
+
+    if (panel === 'form') {
         return (
             <AppLayout current="Ingredientes">
                 <Head title="Ingredientes" />
                 <h1 className="mb-6 text-2xl font-bold text-white">
                     Ingredientes
                 </h1>
-                <NuevoIngredienteForm onVolver={() => setMostrarForm(false)} />
+                <IngredienteForm
+                    ingrediente={editando}
+                    onVolver={() => {
+                        setEditando(null);
+                        setPanel('lista');
+                    }}
+                />
             </AppLayout>
         );
     }
@@ -230,14 +240,17 @@ export default function Ingredientes({ ingredientes = [] }) {
                 <ActionButton
                     icon={Pencil}
                     variant="ghost"
-                    onClick={() => setMostrarForm(true)}
+                    onClick={() => {
+                        setEditando(null);
+                        setPanel('form');
+                    }}
                 >
                     Cargar manualmente
                 </ActionButton>
             </div>
 
             <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
-                {ingredientes.length === 0 ? (
+                {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="mb-4 text-5xl">🧂</div>
                         <p className="text-lg font-semibold text-slate-200">
@@ -265,10 +278,11 @@ export default function Ingredientes({ ingredientes = [] }) {
                                     Costo unitario
                                 </th>
                                 <th className="py-2 font-medium">Stock</th>
+                                <th className="py-2 font-medium"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {ingredientes.map((ing) => (
+                            {items.map((ing) => (
                                 <tr
                                     key={ing.id}
                                     className="border-b border-white/5 last:border-0"
@@ -291,11 +305,32 @@ export default function Ingredientes({ ingredientes = [] }) {
                                             ? `${ing.stock_cantidad} ${ing.stock_unidad ?? ''}`
                                             : '—'}
                                     </td>
+                                    <td className="py-3 text-right">
+                                        <div className="inline-flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEditar(ing)}
+                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-indigo-400"
+                                                title="Editar"
+                                            >
+                                                <Edit3 className="h-4 w-4" strokeWidth={2} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEliminar(ing)}
+                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-rose-400"
+                                                title="Eliminar"
+                                            >
+                                                <Trash2 className="h-4 w-4" strokeWidth={2} />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
+                <Pagination links={paginationLinks} meta={paginationMeta} />
             </div>
         </AppLayout>
     );

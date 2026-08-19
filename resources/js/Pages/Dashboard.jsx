@@ -118,7 +118,13 @@ export default function Dashboard({ stats = {} }) {
     }
 
     function cerrarElDia() {
-        router.visit(s.recetas === 0 ? '/recetas' : '/produccion');
+        if (s.recetas === 0) {
+            router.visit('/recetas');
+            return;
+        }
+        if (confirm('¿Cerrar el día de hoy? Se registrarán las ventas y merma acumuladas.')) {
+            router.post(route('cierres.store'));
+        }
     }
 
     return (

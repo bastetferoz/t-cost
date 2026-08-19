@@ -33,14 +33,49 @@ class Receta extends Model
     }
 
     /**
+     * Tabla de factores de conversión entre unidades compatibles.
+     * Factor: cuántas unidades de "from" equivale 1 unidad de "to".
+     * Ejemplo: 1 KG = 1000 G → de G a KG el factor es 0.001
+     */
+    private static function factorConversion(?string $from, ?string $to): ?float
+    {
+        if (! $from || ! $to || $from === $to) {
+            return 1.0;
+        }
+
+        $conversiones = [
+            'G' => ['KG' => 0.001],
+            'KG' => ['G' => 1000],
+            'ML' => ['L' => 0.001],
+            'L' => ['ML' => 1000],
+        ];
+
+        return $conversiones[strtoupper($from)][strtoupper($to)] ?? null;
+    }
+
+    /**
      * Costo total de la receta sumando el costo proporcional de cada ingrediente.
+     * Aplica conversión automática de unidades cuando la unidad de consumo
+     * difiere de la unidad de compra (ej: receta usa G, ingrediente comprado en KG).
      */
     public function getCostoTotalAttribute(): float
     {
         return $this->ingredientes->sum(function (Ingrediente $ingrediente) {
             $costoUnitario = $ingrediente->costo_unitario ?? 0;
+            $cantidadReceta = (float) $ingrediente->pivot->cantidad;
+            $unidadReceta = $ingrediente->pivot->unidad;
+            $unidadCompra = $ingrediente->compra_unidad;
 
-            return $costoUnitario * (float) $ingrediente->pivot->cantidad;
+            // Si las unidades son iguales o no hay conversión posible, usar directamente.
+            $factor = self::factorConversion($unidadReceta, $unidadCompra);
+
+            if ($factor === null) {
+                // Unidades incompatibles (ej: G vs UNIDAD), no se convierte.
+                return $costoUnitario * $cantidadReceta;
+            }
+
+            // cantidadReceta está en unidadReceta, convertimos a unidadCompra.
+            return $costoUnitario * ($cantidadReceta * $factor);
         });
     }
 

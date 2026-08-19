@@ -1,29 +1,9 @@
 import { useState } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Mic, Pencil, ChevronLeft, Plus, X } from 'lucide-react';
-
-function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
-    const variants = {
-        primary:
-            'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30',
-        ghost: 'bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10',
-    };
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={
-                'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ' +
-                variants[variant]
-            }
-        >
-            <Icon className="h-4 w-4" strokeWidth={2.25} />
-            {children}
-        </button>
-    );
-}
+import ActionButton from '@/Components/ActionButton';
+import Pagination from '@/Components/Pagination';
+import { Mic, Pencil, ChevronLeft, Plus, X, Edit3, Trash2 } from 'lucide-react';
 
 const UNIDADES_CONSUMO = [
     { value: 'G', label: 'gramos (g)' },
@@ -37,13 +17,21 @@ function nuevaLinea() {
     return { ingrediente_id: '', cantidad: '', unidad: '' };
 }
 
-function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        nombre: '',
-        rendimiento_cantidad: 1,
-        rendimiento_unidad: 'unidad',
-        vida_util_dias: '',
-        ingredientes: [nuevaLinea()],
+function RecetaForm({ ingredientesDisponibles, onVolver, receta = null }) {
+    const isEditing = !!receta;
+
+    const { data, setData, post, put, processing, errors, reset } = useForm({
+        nombre: receta?.nombre || '',
+        rendimiento_cantidad: receta?.rendimiento_cantidad || 1,
+        rendimiento_unidad: receta?.rendimiento_unidad || 'unidad',
+        vida_util_dias: receta?.vida_util_dias || '',
+        ingredientes: receta?.ingredientes?.length
+            ? receta.ingredientes.map((i) => ({
+                  ingrediente_id: String(i.ingrediente_id),
+                  cantidad: String(i.cantidad),
+                  unidad: i.unidad || '',
+              }))
+            : [nuevaLinea()],
     });
 
     function actualizarLinea(index, campo, valor) {
@@ -65,16 +53,24 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('recetas.store'), {
-            onSuccess: () => reset(),
-            // Los items vacíos (sin ingrediente seleccionado) no se envían.
+        const options = {
+            onSuccess: () => {
+                if (!isEditing) reset();
+                else onVolver();
+            },
             transform: (formData) => ({
                 ...formData,
                 ingredientes: formData.ingredientes.filter(
                     (l) => l.ingrediente_id,
                 ),
             }),
-        });
+        };
+
+        if (isEditing) {
+            put(route('recetas.update', receta.id), options);
+        } else {
+            post(route('recetas.store'), options);
+        }
     }
 
     return (
@@ -89,7 +85,7 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
             </button>
 
             <h2 className="mb-5 text-lg font-bold text-white">
-                Nueva receta
+                {isEditing ? 'Editar receta' : 'Nueva receta'}
             </h2>
 
             <form onSubmit={submit} className="max-w-xl space-y-5">
@@ -268,27 +264,47 @@ function NuevaRecetaForm({ ingredientesDisponibles, onVolver }) {
                     disabled={processing}
                     className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50"
                 >
-                    Guardar receta
+                    {isEditing ? 'Guardar cambios' : 'Guardar receta'}
                 </button>
             </form>
         </div>
     );
 }
 
-export default function Recetas({ recetas = [], ingredientesDisponibles = [] }) {
-    const [mostrarForm, setMostrarForm] = useState(false);
+export default function Recetas({ recetas = {}, ingredientesDisponibles = [] }) {
+    const [panel, setPanel] = useState('lista');
+    const [editando, setEditando] = useState(null);
     const sinIngredientes = ingredientesDisponibles.length === 0;
 
-    if (mostrarForm && !sinIngredientes) {
+    const items = recetas.data || [];
+    const paginationLinks = recetas.links || [];
+    const paginationMeta = recetas.meta || recetas;
+
+    function handleEditar(receta) {
+        setEditando(receta);
+        setPanel('form');
+    }
+
+    function handleEliminar(receta) {
+        if (confirm(`¿Eliminar "${receta.nombre}"? Esta acción no se puede deshacer.`)) {
+            router.delete(route('recetas.destroy', receta.id));
+        }
+    }
+
+    if (panel === 'form' && !sinIngredientes) {
         return (
             <AppLayout current="Recetas">
                 <Head title="Recetas" />
                 <h1 className="mb-6 text-2xl font-bold text-white">
                     Recetas
                 </h1>
-                <NuevaRecetaForm
+                <RecetaForm
                     ingredientesDisponibles={ingredientesDisponibles}
-                    onVolver={() => setMostrarForm(false)}
+                    receta={editando}
+                    onVolver={() => {
+                        setEditando(null);
+                        setPanel('lista');
+                    }}
                 />
             </AppLayout>
         );
@@ -307,14 +323,17 @@ export default function Recetas({ recetas = [], ingredientesDisponibles = [] }) 
                 <ActionButton
                     icon={Pencil}
                     variant="ghost"
-                    onClick={() => setMostrarForm(true)}
+                    onClick={() => {
+                        setEditando(null);
+                        setPanel('form');
+                    }}
                 >
                     Escribir receta
                 </ActionButton>
             </div>
 
             <div className="rounded-3xl border border-white/5 bg-[#12121f] p-6">
-                {recetas.length === 0 ? (
+                {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="mb-4 text-5xl">👨‍🍳</div>
                         <p className="text-lg font-semibold text-slate-200">
@@ -343,10 +362,11 @@ export default function Recetas({ recetas = [], ingredientesDisponibles = [] }) 
                                 <th className="py-2 font-medium">
                                     Costo total
                                 </th>
+                                <th className="py-2 font-medium"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {recetas.map((r) => (
+                            {items.map((r) => (
                                 <tr
                                     key={r.id}
                                     className="border-b border-white/5 last:border-0"
@@ -361,11 +381,32 @@ export default function Recetas({ recetas = [], ingredientesDisponibles = [] }) 
                                     <td className="py-3 text-slate-400">
                                         ${r.costo_total?.toFixed?.(2) ?? r.costo_total}
                                     </td>
+                                    <td className="py-3 text-right">
+                                        <div className="inline-flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEditar(r)}
+                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-indigo-400"
+                                                title="Editar"
+                                            >
+                                                <Edit3 className="h-4 w-4" strokeWidth={2} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEliminar(r)}
+                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-rose-400"
+                                                title="Eliminar"
+                                            >
+                                                <Trash2 className="h-4 w-4" strokeWidth={2} />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
+                <Pagination links={paginationLinks} meta={paginationMeta} />
             </div>
         </AppLayout>
     );

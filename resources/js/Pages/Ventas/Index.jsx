@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ActionButton from '@/Components/ActionButton';
+import Pagination from '@/Components/Pagination';
 import {
     Mic,
     Pencil,
@@ -9,31 +11,6 @@ import {
     BookOpen,
     ChevronLeft,
 } from 'lucide-react';
-
-function ActionButton({ icon: Icon, children, variant = 'ghost', onClick }) {
-    const variants = {
-        primary:
-            'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30',
-        ghost: 'bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10',
-        dangerOutline:
-            'bg-transparent text-rose-400 border border-rose-500/40 hover:bg-rose-500/10',
-        danger: 'bg-rose-950/60 text-rose-400 border border-rose-500/30 hover:bg-rose-900/60',
-    };
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={
-                'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ' +
-                variants[variant]
-            }
-        >
-            <Icon className="h-4 w-4" strokeWidth={2.25} />
-            {children}
-        </button>
-    );
-}
 
 function Tab({ active, onClick, children }) {
     return (
@@ -270,9 +247,9 @@ function RegistrarMermaForm({ recetas, onVolver }) {
 }
 
 export default function Ventas({
-    ventas = [],
-    mermas = [],
-    cierres = [],
+    ventas = {},
+    mermas = {},
+    cierres = {},
     recetasDisponibles = [],
 }) {
     const [tab, setTab] = useState('ventas');
@@ -280,8 +257,11 @@ export default function Ventas({
 
     const sinRecetas = recetasDisponibles.length === 0;
 
-    const dataByTab = { ventas, merma: mermas, cierres };
-    const rows = dataByTab[tab] ?? [];
+    const paginatedByTab = { ventas, merma: mermas, cierres };
+    const currentPaginated = paginatedByTab[tab] ?? {};
+    const rows = currentPaginated.data || [];
+    const paginationLinks = currentPaginated.links || [];
+    const paginationMeta = currentPaginated.meta || currentPaginated;
     const empty = EMPTY_STATES[tab];
     const EmptyIcon = empty.icon;
     const emptyEmoji = empty.emoji;
@@ -412,6 +392,7 @@ export default function Ventas({
                         </tbody>
                     </table>
                 )}
+                <Pagination links={paginationLinks} meta={paginationMeta} />
             </div>
         </AppLayout>
     );
